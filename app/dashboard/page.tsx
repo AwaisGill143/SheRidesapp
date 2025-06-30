@@ -1,245 +1,221 @@
 "use client"
-
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { MapPin, Calendar, Shield, Heart, Star, MessageCircle, Settings, Bell } from "lucide-react"
-import { DatabaseService, type RideRequest } from "@/lib/database"
+import { MapPin, Shield, Calendar, History, Settings, LogOut, AlertTriangle, Bike, Car } from "lucide-react"
+import { useAuth } from "@/hooks/use-auth"
+import { useHistory } from "@/hooks/use-history"
 
-export default function Dashboard() {
-  const [userName] = useState("Ayesha")
-  const [scheduledRides, setScheduledRides] = useState<RideRequest[]>([])
+const moodEmojis = ["😊", "😌", "🌸", "✨", "💕", "🦋", "🌺", "🌙"]
+
+export default function DashboardPage() {
+  const [currentMood, setCurrentMood] = useState("😊")
+  const [greeting, setGreeting] = useState("")
   const router = useRouter()
+  const { user, logout, isAuthenticated } = useAuth()
+  const { history, getRecentDestinations, getFavoriteVehicleType } = useHistory()
 
+  // Redirect if not authenticated
   useEffect(() => {
-    loadScheduledRides()
+    if (!isAuthenticated) {
+      router.push("/auth/login")
+    }
+  }, [isAuthenticated, router])
+
+  // Set personalized greeting
+  useEffect(() => {
+    const hour = new Date().getHours()
+    let timeGreeting = ""
+
+    if (hour < 12) timeGreeting = "Good morning"
+    else if (hour < 17) timeGreeting = "Good afternoon"
+    else timeGreeting = "Good evening"
+
+    setGreeting(timeGreeting)
   }, [])
 
-  const loadScheduledRides = async () => {
-    try {
-      const rides = await DatabaseService.getScheduledRides("current-user-id")
-      setScheduledRides(rides.slice(0, 2)) // Show only next 2 rides
-    } catch (error) {
-      console.error("Error loading scheduled rides:", error)
-    }
+  // Get user stats from history
+  const recentDestinations = getRecentDestinations()
+  const favoriteVehicle = getFavoriteVehicleType()
+  const totalRides = history.length
+  const completedRides = history.filter((ride) => ride.status === "completed").length
+
+  const handleLogout = () => {
+    logout()
+    router.push("/")
+  }
+
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-pink-bg flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-pink-deep"></div>
+      </div>
+    )
   }
 
   return (
-    <div className="min-h-screen bg-pink-bg">
-      {/* Header */}
-      <div className="bg-gradient-to-r from-pink-soft to-pink-deep p-6 rounded-b-3xl">
-        <div className="flex justify-between items-center mb-6">
-          <div>
-            <h1 className="font-heading text-2xl font-bold text-white">Hey, {userName} 👋</h1>
-            <p className="text-white/80">Need a safe ride today?</p>
+    <div className="min-h-screen bg-pink-bg p-6">
+      <div className="max-w-md mx-auto space-y-6">
+        {/* Header with user info */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-3">
+            <div className="w-12 h-12 bg-gradient-to-br from-pink-soft to-pink-deep rounded-full flex items-center justify-center">
+              <span className="text-xl">{currentMood}</span>
+            </div>
+            <div>
+              <h1 className="font-heading text-xl font-bold text-purple-deep">
+                {greeting}, {user.name?.split(" ")[0] || "Beautiful"}!
+              </h1>
+              <p className="text-sm text-purple-light">How are you feeling today?</p>
+            </div>
           </div>
-          <div className="flex space-x-3">
-            <Button size="sm" variant="ghost" className="text-white">
-              <Bell className="w-5 h-5" />
-            </Button>
-            <Button size="sm" variant="ghost" className="text-white">
-              <Settings className="w-5 h-5" />
-            </Button>
-          </div>
+          <Button variant="ghost" size="sm" onClick={handleLogout}>
+            <LogOut className="w-5 h-5 text-purple-light" />
+          </Button>
         </div>
 
-        {/* Safety Status */}
-        <Card className="bg-white/10 backdrop-blur-sm border-0 rounded-2xl">
+        {/* Mood selector */}
+        <Card className="rounded-3xl shadow-lg border-0">
+          <CardContent className="p-4">
+            <div className="flex justify-between items-center">
+              {moodEmojis.map((emoji) => (
+                <Button
+                  key={emoji}
+                  variant="ghost"
+                  size="sm"
+                  className={`text-2xl p-2 rounded-full ${currentMood === emoji ? "bg-pink-light" : ""}`}
+                  onClick={() => setCurrentMood(emoji)}
+                >
+                  {emoji}
+                </Button>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Quick stats */}
+        <div className="grid grid-cols-2 gap-4">
+          <Card className="rounded-2xl shadow-lg border-0">
+            <CardContent className="p-4 text-center">
+              <div className="text-2xl font-bold text-pink-deep">{totalRides}</div>
+              <div className="text-sm text-purple-light">Total Rides</div>
+            </CardContent>
+          </Card>
+          <Card className="rounded-2xl shadow-lg border-0">
+            <CardContent className="p-4 text-center">
+              <div className="text-2xl font-bold text-pink-deep">{completedRides}</div>
+              <div className="text-sm text-purple-light">Completed</div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Favorite vehicle type */}
+        {totalRides > 0 && (
+          <Card className="rounded-3xl shadow-lg border-0">
+            <CardContent className="p-4">
+              <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 bg-pink-light rounded-full flex items-center justify-center">
+                  {favoriteVehicle === "bike" && <Bike className="w-5 h-5 text-pink-deep" />}
+                  {favoriteVehicle === "car" && <Car className="w-5 h-5 text-pink-deep" />}
+                  {favoriteVehicle === "rickshaw" && <span className="text-pink-deep">🛺</span>}
+                </div>
+                <div>
+                  <p className="font-semibold text-purple-deep">Your favorite ride</p>
+                  <p className="text-sm text-purple-light capitalize">{favoriteVehicle}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Recent destinations */}
+        {recentDestinations.length > 0 && (
+          <Card className="rounded-3xl shadow-lg border-0">
+            <CardHeader className="pb-3">
+              <CardTitle className="font-heading text-lg text-purple-deep flex items-center">
+                <History className="w-5 h-5 mr-2" />
+                Recent Destinations
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              {recentDestinations.slice(0, 3).map((destination, index) => (
+                <Button
+                  key={index}
+                  variant="ghost"
+                  className="w-full justify-start text-left p-3 rounded-2xl hover:bg-pink-light"
+                  onClick={() => router.push(`/ride/request?to=${encodeURIComponent(destination)}`)}
+                >
+                  <MapPin className="w-4 h-4 mr-3 text-pink-deep" />
+                  <span className="truncate">{destination}</span>
+                </Button>
+              ))}
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Main action buttons */}
+        <div className="space-y-4">
+          <Button
+            onClick={() => router.push("/ride/request")}
+            className="w-full bg-gradient-to-r from-pink-soft to-pink-deep hover:from-pink-deep hover:to-pink-soft text-white font-semibold py-4 rounded-3xl h-16 text-lg"
+          >
+            <MapPin className="w-6 h-6 mr-3" />
+            Book a Ride Now
+          </Button>
+
+          <Button
+            onClick={() => router.push("/ride/schedule")}
+            variant="outline"
+            className="w-full border-pink-soft text-pink-deep hover:bg-pink-light py-4 rounded-3xl h-16 text-lg"
+          >
+            <Calendar className="w-6 h-6 mr-3" />
+            Schedule in Advance
+          </Button>
+        </div>
+
+        {/* Safety features */}
+        <Card className="rounded-3xl shadow-lg border-0 bg-gradient-to-r from-pink-light to-purple-light">
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
-                  <Shield className="w-5 h-5 text-white" />
-                </div>
+                <Shield className="w-8 h-8 text-pink-deep" />
                 <div>
-                  <p className="text-white font-medium">Safety Status</p>
-                  <p className="text-white/70 text-sm">All systems active</p>
+                  <p className="font-semibold text-purple-deep">Safety First</p>
+                  <p className="text-sm text-purple-light">Women-only verified drivers</p>
                 </div>
               </div>
-              <Badge className="bg-green-500 text-white">Online</Badge>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Main Actions */}
-      <div className="p-6 space-y-4">
-        <Card
-          className="rounded-3xl shadow-lg border-0 cursor-pointer hover:shadow-xl transition-all duration-300"
-          onClick={() => router.push("/ride/request")}
-        >
-          <CardContent className="p-6">
-            <div className="flex items-center space-x-4">
-              <div className="w-16 h-16 bg-gradient-to-br from-pink-soft to-pink-deep rounded-2xl flex items-center justify-center">
-                <MapPin className="w-8 h-8 text-white" />
-              </div>
-              <div className="flex-1">
-                <h3 className="font-heading text-lg font-semibold text-purple-deep">Request a Ride</h3>
-                <p className="text-gray-600">Get matched with a trusted driver</p>
-              </div>
-              <div className="animate-ripple w-4 h-4 bg-pink-soft rounded-full"></div>
+              <Badge className="bg-green-100 text-green-800">Active</Badge>
             </div>
           </CardContent>
         </Card>
 
-        <Card
-          className="rounded-3xl shadow-lg border-0 cursor-pointer hover:shadow-xl transition-all duration-300"
-          onClick={() => router.push("/ride/schedule")}
-        >
-          <CardContent className="p-6">
-            <div className="flex items-center space-x-4">
-              <div className="w-16 h-16 bg-gradient-to-br from-pink-light to-pink-soft rounded-2xl flex items-center justify-center">
-                <Calendar className="w-8 h-8 text-purple-deep" />
-              </div>
-              <div className="flex-1">
-                <h3 className="font-heading text-lg font-semibold text-purple-deep">Schedule in Advance</h3>
-                <p className="text-gray-600">Plan your rides ahead of time</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Upcoming Scheduled Rides */}
-      {scheduledRides.length > 0 && (
-        <div className="p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="font-heading text-xl font-semibold text-purple-deep">Upcoming Rides</h2>
-            <Button variant="link" className="text-pink-deep" onClick={() => router.push("/ride/scheduled")}>
-              View All
-            </Button>
-          </div>
-
-          <div className="space-y-3">
-            {scheduledRides.map((ride) => (
-              <Card key={ride.id} className="rounded-2xl border-0 shadow-sm">
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-3">
-                      <div className="w-10 h-10 bg-pink-light rounded-full flex items-center justify-center">
-                        <span className="text-sm">
-                          {ride.vehicle_type === "bike" && "🏍️"}
-                          {ride.vehicle_type === "rickshaw" && "🛺"}
-                          {ride.vehicle_type === "car" && "🚗"}
-                        </span>
-                      </div>
-                      <div>
-                        <p className="font-medium text-purple-deep capitalize">{ride.vehicle_type} Ride</p>
-                        <p className="text-sm text-gray-600">
-                          {new Date(ride.scheduled_time!).toLocaleDateString("en-US", {
-                            weekday: "short",
-                            month: "short",
-                            day: "numeric",
-                          })}{" "}
-                          at{" "}
-                          {new Date(ride.scheduled_time!).toLocaleTimeString("en-US", {
-                            hour: "numeric",
-                            minute: "2-digit",
-                            hour12: true,
-                          })}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-sm font-medium text-purple-deep">${ride.suggested_price}</p>
-                      <Badge className="bg-blue-500 text-white text-xs">Scheduled</Badge>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Recent Activity */}
-      <div className="p-6">
-        <h2 className="font-heading text-xl font-semibold text-purple-deep mb-4">Recent Activity</h2>
-
-        <div className="space-y-3">
-          <Card className="rounded-2xl border-0 shadow-sm">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-3">
-                  <div className="w-10 h-10 bg-pink-light rounded-full flex items-center justify-center">
-                    <span className="text-sm">👩</span>
-                  </div>
-                  <div>
-                    <p className="font-medium text-purple-deep">Ride with Sarah</p>
-                    <p className="text-sm text-gray-600">Downtown → Airport</p>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <div className="flex items-center space-x-1">
-                    <Star className="w-4 h-4 text-yellow-400 fill-current" />
-                    <span className="text-sm font-medium">5.0</span>
-                  </div>
-                  <p className="text-sm text-gray-500">2 hours ago</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="rounded-2xl border-0 shadow-sm">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-3">
-                  <div className="w-10 h-10 bg-pink-light rounded-full flex items-center justify-center">
-                    <span className="text-sm">👩‍🦱</span>
-                  </div>
-                  <div>
-                    <p className="font-medium text-purple-deep">Ride with Maria</p>
-                    <p className="text-sm text-gray-600">Home → Mall</p>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <div className="flex items-center space-x-1">
-                    <Star className="w-4 h-4 text-yellow-400 fill-current" />
-                    <span className="text-sm font-medium">4.8</span>
-                  </div>
-                  <p className="text-sm text-gray-500">Yesterday</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-
-      {/* Community Section */}
-      <div className="p-6">
-        <Card className="rounded-3xl bg-gradient-to-r from-pink-light to-pink-soft border-0">
-          <CardContent className="p-6 text-center">
-            <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center mx-auto mb-4">
-              <Heart className="w-6 h-6 text-pink-deep" />
-            </div>
-            <h3 className="font-heading text-lg font-semibold text-purple-deep mb-2">Join the Community</h3>
-            <p className="text-gray-700 mb-4">Share experiences and connect with other riders</p>
-            <Button
-              variant="outline"
-              className="border-white bg-white text-pink-deep hover:bg-pink-light rounded-2xl"
-              onClick={() => router.push("/community")}
-            >
-              <MessageCircle className="w-4 h-4 mr-2" />
-              Community Wall
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* SOS Button - Always visible */}
-      <div className="fixed bottom-6 right-6">
+        {/* Emergency SOS */}
         <Button
-          size="lg"
-          className="w-16 h-16 rounded-full bg-red-500 hover:bg-red-600 shadow-2xl"
+          variant="destructive"
+          className="w-full bg-red-500 hover:bg-red-600 text-white font-bold py-4 rounded-3xl h-16 text-lg"
           onClick={() => {
-            // SOS functionality
-            alert("SOS activated! Emergency contacts notified.")
+            // Emergency action
+            alert("Emergency services contacted! 🚨")
           }}
         >
-          <Heart className="w-8 h-8 text-white" />
+          <AlertTriangle className="w-6 h-6 mr-3" />
+          Emergency SOS
         </Button>
+
+        {/* Bottom navigation */}
+        <div className="flex justify-around py-4">
+          <Button variant="ghost" onClick={() => router.push("/ride/scheduled")}>
+            <Calendar className="w-5 h-5" />
+          </Button>
+          <Button variant="ghost" onClick={() => router.push("/history")}>
+            <History className="w-5 h-5" />
+          </Button>
+          <Button variant="ghost" onClick={() => router.push("/profile")}>
+            <Settings className="w-5 h-5" />
+          </Button>
+        </div>
       </div>
     </div>
   )

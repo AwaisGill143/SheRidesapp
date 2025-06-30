@@ -76,3 +76,32 @@ export interface RideFeedback {
   feedback_tags?: string[]
   created_at: string
 }
+
+export interface ChatRoom {
+  id: string
+  ride_id: string
+  rider_id: string
+  driver_id: string
+  is_active: boolean
+  created_at: string
+  updated_at: string
+}
+
+export interface ChatMessage {
+  id: string
+  chat_room_id: string
+  sender_id: string
+  message_text: string
+  message_type: "text" | "location" | "safety_alert" | "system"
+  is_read: boolean
+  is_flagged: boolean
+  created_at: string
+}
+
+export interface QuickMessage {
+  id: string
+  message_text: string
+  category: "arrival" | "location" | "safety" | "general"
+  is_active: boolean
+  created_at: string
+}

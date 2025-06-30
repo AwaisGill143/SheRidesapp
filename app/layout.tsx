@@ -2,6 +2,7 @@ import type React from "react"
 import type { Metadata } from "next"
 import { Poppins, Nunito } from "next/font/google"
 import "./globals.css"
+import { ServiceWorkerRegistration } from "@/components/service-worker-registration"
 
 const poppins = Poppins({
   subsets: ["latin"],
@@ -18,7 +19,7 @@ const nunito = Nunito({
 export const metadata: Metadata = {
   title: "PinkRide - Your Safe Ride, Just for You 💗",
   description: "Women-only ride hailing service focused on safety and community",
-    generator: 'v0.dev'
+  generator: "v0.dev",
 }
 
 export default function RootLayout({
@@ -28,7 +29,10 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className={`${poppins.variable} ${nunito.variable} font-body bg-pink-bg min-h-screen`}>{children}</body>
+      <body className={`${poppins.variable} ${nunito.variable} font-body bg-pink-bg min-h-screen`}>
+        {children}
+        <ServiceWorkerRegistration />
+      </body>
     </html>
   )
 }
