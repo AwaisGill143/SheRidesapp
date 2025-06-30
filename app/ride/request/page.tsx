@@ -8,6 +8,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { ArrowLeft, MapPin, Navigation, DollarSign, Users, Heart, Car } from "lucide-react"
 import { DatabaseService } from "@/lib/database"
+import { useAuth } from "@/hooks/use-auth"
+import { getOrCreateUserUUID } from "@/lib/auth-utils"
 
 export default function RequestRide() {
   const [pickup, setPickup] = useState("")
@@ -16,7 +18,13 @@ export default function RequestRide() {
   const [mood, setMood] = useState<string>("")
   const [isSearching, setIsSearching] = useState(false)
   const router = useRouter()
+  const { user, isInitialized } = useAuth()
   const [vehicleType, setVehicleType] = useState<"bike" | "rickshaw" | "car">("rickshaw")
+
+  if (isInitialized && !user) {
+    router.replace("/auth/login")
+    return null
+  }
 
   const moods = [
     { emoji: "😊", label: "Happy", value: "happy" },
@@ -30,8 +38,10 @@ export default function RequestRide() {
 
     try {
       // Create ride request in database
+      const riderId = getOrCreateUserUUID()
+      await DatabaseService.ensureUserExists(riderId) // 🔑 make sure FK is satisfied
       const rideRequest = await DatabaseService.createRideRequest({
-        rider_id: "current-user-id", // This would come from auth context
+        rider_id: riderId,
         pickup_location: pickup,
         dropoff_location: dropoff,
         vehicle_type: vehicleType,

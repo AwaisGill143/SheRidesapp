@@ -1,4 +1,5 @@
 "use client"
+
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
@@ -13,16 +14,18 @@ const moodEmojis = ["😊", "😌", "🌸", "✨", "💕", "🦋", "🌺", "🌙
 export default function DashboardPage() {
   const [currentMood, setCurrentMood] = useState("😊")
   const [greeting, setGreeting] = useState("")
+  const [hasRedirected, setHasRedirected] = useState(false)
   const router = useRouter()
-  const { user, logout, isAuthenticated } = useAuth()
+  const { user, logout, isAuthenticated, isInitialized } = useAuth()
   const { history, getRecentDestinations, getFavoriteVehicleType } = useHistory()
 
-  // Redirect if not authenticated
+  // Only redirect if not authenticated and initialized, and haven't redirected yet
   useEffect(() => {
-    if (!isAuthenticated) {
-      router.push("/auth/login")
+    if (isInitialized && !isAuthenticated && !hasRedirected) {
+      setHasRedirected(true)
+      router.replace("/auth/login")
     }
-  }, [isAuthenticated, router])
+  }, [isAuthenticated, isInitialized, hasRedirected, router])
 
   // Set personalized greeting
   useEffect(() => {
@@ -44,13 +47,30 @@ export default function DashboardPage() {
 
   const handleLogout = () => {
     logout()
-    router.push("/")
+    setHasRedirected(true)
+    router.replace("/")
   }
 
-  if (!user) {
+  // Show loading while checking authentication
+  if (!isInitialized) {
     return (
       <div className="min-h-screen bg-pink-bg flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-pink-deep"></div>
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-pink-deep mx-auto mb-4"></div>
+          <p className="text-purple-deep">Loading...</p>
+        </div>
+      </div>
+    )
+  }
+
+  // Don't render dashboard if not authenticated
+  if (!isAuthenticated || !user) {
+    return (
+      <div className="min-h-screen bg-pink-bg flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-pink-deep mx-auto mb-4"></div>
+          <p className="text-purple-deep">Redirecting to login...</p>
+        </div>
       </div>
     )
   }

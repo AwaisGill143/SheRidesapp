@@ -23,6 +23,19 @@ export class DatabaseService {
     return data
   }
 
+  /** Ensure a user row exists (insert if missing) */
+  static async ensureUserExists(id: string) {
+    const { error } = await supabase.from("users").upsert(
+      {
+        id, // primary key / UUID
+        full_name: "Guest User",
+        email: `${id}@guest.local`, // dummy but unique
+      },
+      { onConflict: "id" },
+    )
+    if (error) throw error
+  }
+
   // Driver profile operations
   static async createDriverProfile(profileData: Omit<DriverProfile, "id" | "created_at" | "updated_at">) {
     const { data, error } = await supabase.from("driver_profiles").insert([profileData]).select().single()

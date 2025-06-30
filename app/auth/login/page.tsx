@@ -16,15 +16,17 @@ export default function LoginPage() {
   const [password, setPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
   const [rememberMe, setRememberMe] = useState(true)
+  const [hasRedirected, setHasRedirected] = useState(false)
   const router = useRouter()
-  const { login, isLoading, isAuthenticated } = useAuth()
+  const { login, isLoading, isAuthenticated, isInitialized } = useAuth()
 
-  // Redirect if already authenticated
+  // Only redirect if authenticated and initialized, and haven't redirected yet
   useEffect(() => {
-    if (isAuthenticated) {
-      router.push("/dashboard")
+    if (isInitialized && isAuthenticated && !hasRedirected) {
+      setHasRedirected(true)
+      router.replace("/dashboard")
     }
-  }, [isAuthenticated, router])
+  }, [isAuthenticated, isInitialized, hasRedirected, router])
 
   // Pre-fill with saved credentials if available
   useEffect(() => {
@@ -66,10 +68,35 @@ export default function LoginPage() {
       }
 
       toast.success("Welcome back! 💗")
-      router.push("/dashboard")
+      setHasRedirected(true)
+      router.replace("/dashboard")
     } else {
       toast.error(result.error || "Login failed. Please try again.")
     }
+  }
+
+  // Show loading while checking authentication
+  if (!isInitialized) {
+    return (
+      <div className="min-h-screen bg-pink-bg flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-pink-deep mx-auto mb-4"></div>
+          <p className="text-purple-deep">Loading...</p>
+        </div>
+      </div>
+    )
+  }
+
+  // Don't render login form if already authenticated
+  if (isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-pink-bg flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-pink-deep mx-auto mb-4"></div>
+          <p className="text-purple-deep">Redirecting to dashboard...</p>
+        </div>
+      </div>
+    )
   }
 
   return (

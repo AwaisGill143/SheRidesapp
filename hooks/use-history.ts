@@ -12,7 +12,7 @@ export function useHistory() {
     setHistory(savedHistory)
   }, [])
 
-  const addRide = (ride: RideHistoryItem) => {
+  const addToHistory = (ride: RideHistoryItem) => {
     HistoryService.addToHistory(ride)
     setHistory(HistoryService.getHistory())
   }
@@ -32,7 +32,7 @@ export function useHistory() {
 
   return {
     history,
-    addRide,
+    addToHistory,
     clearHistory,
     getRecentDestinations,
     getFavoriteVehicleType,
